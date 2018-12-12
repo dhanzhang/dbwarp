@@ -7,7 +7,7 @@
 		</encoder>
 	</appender>
 
-	<appender name="CANAL-ROOT" class="ch.qos.logback.classic.sift.SiftingAppender">
+	<appender name="ROOT" class="ch.qos.logback.classic.sift.SiftingAppender">
 		<discriminator>
 			<Key>destination</Key>
 			<DefaultValue>dbwarp</DefaultValue>
@@ -33,7 +33,7 @@
 		</sift>
 	</appender>
 
-	<appender name="CANAL-META" class="ch.qos.logback.classic.sift.SiftingAppender">
+	<appender name="META" class="ch.qos.logback.classic.sift.SiftingAppender">
 		<discriminator>
 			<Key>destination</Key>
 			<DefaultValue>dbwarp</DefaultValue>
@@ -62,11 +62,11 @@
 
 	<root level="WARN">
 		<appender-ref ref="STDOUT"/>
-		<appender-ref ref="CANAL-ROOT" />
+		<appender-ref ref="ROOT" />
 	</root>
 
 	<root level="INFO">
 		<appender-ref ref="STDOUT"/>
-		<appender-ref ref="CANAL-META" />
+		<appender-ref ref="META" />
 	</root>
 </configuration>
