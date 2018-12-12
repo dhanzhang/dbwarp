@@ -1,0 +1,8 @@
+2018-12-12 11:07:01.611 [main] INFO  com.jpdbase.dbwarp.Launcher - OK
+2018-12-12 11:07:01.654 [main] INFO  com.jpdbase.dbwarp.DbWrapper - Load DbConfig Info :dbHost:192.168.1.188, dbPort:3306 , dbName:canal, dbUser:canal
+2018-12-12 11:07:01.654 [main] INFO  com.jpdbase.dbwarp.DbWrapper - Load DbConfig Info :dbHost:192.168.1.187, dbPort:3306 , dbName:canal, dbUser:canal
+2018-12-12 11:07:01.655 [main] INFO  com.jpdbase.dbwarp.DbWrapper - Load DbConfig Info :dbHost:192.168.1.188, dbPort:3306 , dbName:canal, dbUser:canal
+2018-12-12 11:07:36.575 [main] INFO  com.jpdbase.dbwarp.Launcher - OK
+2018-12-12 11:07:36.614 [main] INFO  com.jpdbase.dbwarp.DbWrapper - Load DbConfig Info :dbHost:192.168.1.188, dbPort:3306 , dbName:canal, dbUser:canal
+2018-12-12 11:07:36.615 [main] INFO  com.jpdbase.dbwarp.DbWrapper - Load DbConfig Info :dbHost:192.168.1.187, dbPort:3306 , dbName:canal, dbUser:canal
+2018-12-12 11:07:36.615 [main] INFO  com.jpdbase.dbwarp.DbWrapper - Load DbConfig Info :dbHost:192.168.1.188, dbPort:3306 , dbName:canal, dbUser:canal
