@@ -1,5 +1,8 @@
 package com.jpdbase.dbwarp;
 
+
+import java.sql.DriverManager;
+
 public class DbInfo {
 
     private String dbName;
@@ -7,6 +10,26 @@ public class DbInfo {
     private int dbPort;
     private String userName;
     private String userPwd;
+
+    public String getInstanceName() {
+        return instanceName;
+    }
+
+    public void setInstanceName(String instanceName) {
+        this.instanceName = instanceName;
+    }
+
+    private String instanceName;
+
+    public boolean isMaster() {
+        return isMaster;
+    }
+
+    public void setMaster(boolean master) {
+        isMaster = master;
+    }
+
+    private boolean isMaster;
 
     public String getDbName() {
         return dbName;
@@ -59,9 +82,17 @@ public class DbInfo {
 
     @Override
     public String toString() {
-        return String.format("dbHost:%s, dbPort:%d , dbName:%s, dbUser:%s", dbHost, dbPort, dbName, userName);
+        return String.format("dbInstance:%s, dbHost:%s, dbPort:%d , dbName:%s, dbUser:%s", getInstanceName(),  getDbHost(), getDbPort(), getDbName(), getUserName());
     }
 
     public DbInfo() {
+    }
+
+
+    public com.mysql.jdbc.MySQLConnection CreateConnection() throws Exception {
+
+        Class.forName("com.mysql.jdbc.Driver");
+        final String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=false&characterEncoding=UTF-8", getDbHost(), getDbPort(), getDbName());
+        return (com.mysql.jdbc.MySQLConnection) DriverManager.getConnection(url, getUserName(), getUserPwd());
     }
 }
