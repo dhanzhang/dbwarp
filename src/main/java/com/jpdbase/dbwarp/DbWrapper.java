@@ -188,16 +188,9 @@ public class DbWrapper {
         return dbMapInfo.get(hiscode);
     }
 
-    public com.mysql.jdbc.MySQLConnection createConnection(DbInfo dbInfo) {
-        final String instName = dbInfo.getInstanceName();
-        if (!connectionMap.containsKey(instName)) {
-            try {
-                connectionMap.put(instName, dbInfo.CreateConnection());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return connectionMap.get(instName);
+    public com.mysql.jdbc.MySQLConnection createConnection(DbInfo dbInfo) throws Exception {
+
+        return  dbInfo.CreateConnection();
     }
 
     public DbInfo MasterDb() {

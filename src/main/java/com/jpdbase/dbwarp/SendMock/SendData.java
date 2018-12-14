@@ -1,15 +1,13 @@
-package com.jpdbase.dbwarp;
+package com.jpdbase.dbwarp.SendMock;
 
+import com.jpdbase.dbwarp.DbInfo;
+import com.jpdbase.dbwarp.IdGenerator;
 import com.mysql.jdbc.Connection;
-import com.mysql.jdbc.Statement;
-import com.mysql.jdbc.exceptions.MySQLDataException;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 
 public class SendData implements Runnable {
 
@@ -41,7 +39,7 @@ public class SendData implements Runnable {
                     stmt.setString(1, "1");
                     stmt.setString(2, "2");
                     stmt.setString(3, sopUid);
-                    stmt.setString(4, "1.1008.1.20");
+                    stmt.setString(4, "1.1008.1.'20");
                     stmt.setInt(5, this.hisCode);
                     stmt.setLong(6, idc);
                     try {
@@ -66,8 +64,6 @@ public class SendData implements Runnable {
                 // connection.rollback();
                 ex.printStackTrace();
                 LOGGER.error(ex.getMessage());
-            } finally {
-                connection.close();
             }
         } catch (Exception e) {
             e.printStackTrace();

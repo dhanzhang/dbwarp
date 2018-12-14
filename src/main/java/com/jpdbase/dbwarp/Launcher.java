@@ -1,6 +1,8 @@
 package com.jpdbase.dbwarp;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.jpdbase.dbwarp.SendMock.SendData;
+import com.jpdbase.dbwarp.SendMock.SendJson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,26 +30,28 @@ public class Launcher {
         // 第三种是固定大小线程池。
         // 然后运行
 //        e.execute(new MyRunnableImpl());
-
 //        ExecutorService e = Executors.newFixedThreadPool(3);
 //
 //
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("sendData-pool-%d").build();
-        ExecutorService pool = new ThreadPoolExecutor(4, 8, 360L,
+        ExecutorService pool = new ThreadPoolExecutor(8, 16, 360L,
                 TimeUnit.SECONDS,
                 new ArrayBlockingQueue<Runnable>(8), namedThreadFactory, new ThreadPoolExecutor.AbortPolicy());
-
         //        CanalConnectors.newSingleConnector(
 //                new InetSocketAddress(AddressUtils.getHostIp(), 11111), "example", "", "");
-        pool.submit(new Dispatch("127.0.0.1",11111, "example","",""));
+        pool.submit(new Dispatch("127.0.0.1", 11111, "example", "", ""));
 //        pool.submit(new Dispatch("127.0.0.1",11111, "example","",""));
 //        pool.submit(new Dispatch("127.0.0.1",11111, "example","",""));
-
-//        pool.submit(new SendData(mdb, 2001, 1000));
-//        pool.submit(new SendData(mdb, 2002, 1000));
-//        pool.submit(new SendData(mdb, 2003, 1000));
-//        pool.submit(new SendData(mdb, 2004, 1000));
-//        pool.submit(new SendData(mdb, 2005, 1000));
+        pool.submit(new SendJson(mdb, 2001, 100));
+        pool.submit(new SendJson(mdb, 2002, 100));
+        pool.submit(new SendData(mdb, 2001, 5000));
+        pool.submit(new SendData(mdb, 2002, 5000));
+        pool.submit(new SendJson(mdb, 2003, 100));
+        pool.submit(new SendJson(mdb, 2004, 100));
+        pool.submit(new SendJson(mdb, 2005, 100));
+        pool.submit(new SendData(mdb, 2003, 5000));
+        pool.submit(new SendData(mdb, 2004, 5000));
+        pool.submit(new SendData(mdb, 2005, 5000));
         pool.shutdown();
         LOGGER.info("Complected !");
 

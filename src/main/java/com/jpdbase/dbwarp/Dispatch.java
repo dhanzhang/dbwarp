@@ -7,6 +7,7 @@ import com.alibaba.otter.canal.protocol.Message;
 import com.mysql.jdbc.Connection;
 import com.sun.istack.internal.NotNull;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.StatementCreatorUtils;
@@ -14,10 +15,8 @@ import org.springframework.jdbc.core.StatementCreatorUtils;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.Types;
+import java.util.*;
 
 public class Dispatch implements Runnable {
     public static final Logger LOGGER = LoggerFactory.getLogger(Dispatch.class);
@@ -26,8 +25,7 @@ public class Dispatch implements Runnable {
 
     public Dispatch(String canalHost, int canalPort, String destination, String username, String password) {
         // 创建链接
-        connector = CanalConnectors.newSingleConnector(
-                new InetSocketAddress(canalHost, canalPort), destination, username, password);
+        connector = CanalConnectors.newSingleConnector(new InetSocketAddress(canalHost, canalPort), destination, username, password);
     }
 
     private void printEntry(@NotNull List<CanalEntry.Entry> entrys) {
@@ -49,21 +47,37 @@ public class Dispatch implements Runnable {
                     entry.getHeader().getLogfileName(), entry.getHeader().getLogfileOffset(),
                     entry.getHeader().getSchemaName(), entry.getHeader().getTableName(),
                     eventType));
-            System.out.println(String.format("values is ===> : %s", rowChage.getSql()));
 
-            for (CanalEntry.RowData rowData : rowChage.getRowDatasList()) {
-                if (eventType == CanalEntry.EventType.DELETE) {
-                    printColumn(rowData.getBeforeColumnsList());
-                    deleteData(
-                            entry.getHeader().getTableName(),
-                            rowData.getBeforeColumnsList()
-                    );
-                } else if (eventType == CanalEntry.EventType.INSERT) {
+            String tabName = entry.getHeader().getTableName().toLowerCase();
+
+            if (!Arrays.asList(EventHandlerFactory.SUPPORTED_TALBES).parallelStream().anyMatch(x -> StringUtils.equalsIgnoreCase(x, tabName))) {
+                for (CanalEntry.RowData rowData : rowChage.getRowDatasList()) {
                     printColumn(rowData.getAfterColumnsList());
-                    insertData(
-                            entry.getHeader().getTableName(),
-                            rowData.getAfterColumnsList()
-                    );
+                }
+                return;
+            }
+
+            IEventHandler handler = EventHandlerFactory.getFactoryInstance().BuilderHandler(tabName);
+            for (CanalEntry.RowData rowData : rowChage.getRowDatasList()) {
+                if (eventType == CanalEntry.EventType.DELETE || eventType == CanalEntry.EventType.INSERT || eventType == CanalEntry.EventType.UPDATE) {
+                    CanalEntry.Column hcol;
+                    if (eventType == CanalEntry.EventType.INSERT || eventType == CanalEntry.EventType.UPDATE) {
+                        hcol = rowData.getAfterColumnsList().parallelStream()
+                                .filter(x -> StringUtils.equalsIgnoreCase(x.getName(), EventHandlerFactory.PARTICAL_KEY)).findFirst().get();
+                    } else {
+                        hcol = rowData.getBeforeColumnsList().parallelStream()
+                                .filter(x -> StringUtils.equalsIgnoreCase(x.getName(), EventHandlerFactory.PARTICAL_KEY)).findFirst().get();
+                    }
+                    final int hiscode = Integer.parseInt(hcol.getValue());
+                    DbInfo dbInfo = DbWrapper.instance().getHisMapDB(hiscode);
+                    handler.attachTdDbInstance(dbInfo);
+                    if (eventType == CanalEntry.EventType.INSERT) {
+                        handler.insertData(rowData.getAfterColumnsList());
+                    } else if (eventType == CanalEntry.EventType.UPDATE) {
+                        handler.updateData(rowData.getBeforeColumnsList(), rowData.getAfterColumnsList());
+                    } else if (eventType == CanalEntry.EventType.DELETE) {
+                        handler.deleteData(rowData.getBeforeColumnsList());
+                    }
                 } else {
                     System.out.println("-------> before");
                     printColumn(rowData.getBeforeColumnsList());
@@ -71,91 +85,19 @@ public class Dispatch implements Runnable {
                     printColumn(rowData.getAfterColumnsList());
                 }
             }
+
         }
     }
 
-    private void deleteData(String tabName, @NotNull List<CanalEntry.Column> columns) {
-        List<String> cols = new ArrayList<>(columns.size());
-        List<String> vals = new ArrayList<>(columns.size());
-        int hisCode = -1;
-        String idxStr = "";
-        int sqlType = -1;
-
-        for (CanalEntry.Column column : columns) {
-            if (StringUtils.equalsIgnoreCase("idx", column.getName())) {
-                idxStr = column.getValue();
-                sqlType = column.getSqlType();
-            }
-            if (StringUtils.equalsIgnoreCase(column.getName(), "hiscode")) {
-                hisCode = Integer.parseInt(column.getValue());
-            }
-        }
-        if (hisCode == -1) {
-            return;
-        }
-        if (StringUtils.isEmpty(idxStr)) {
-            return;
-        }
-
-        final String sqlSta = String.format("delete from `%s` where idx = ?;", tabName);
-        LOGGER.info("Delete  SQL is :{}", sqlSta);
-        DbInfo db = DbWrapper.instance().getHisMapDB(hisCode);
-
-        try {
-            Connection connection = DbWrapper.instance().createConnection(db);
-            PreparedStatement stmt = (com.mysql.jdbc.PreparedStatement) connection.prepareStatement(sqlSta);
-            StatementCreatorUtils.setParameterValue(stmt,1, sqlType, idxStr);
-            stmt.execute();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void insertData(String tabName, @NotNull List<CanalEntry.Column> columns) {
-        List<String> cols = new ArrayList<>(columns.size());
-        List<String> vals = new ArrayList<>(columns.size());
-
-        int hisCode = -1;
-
-        for (CanalEntry.Column column : columns) {
-            cols.add("`" + column.getName() + "`");
-            int sqlType = column.getSqlType();
-            vals.add("?");
-            if (StringUtils.equalsIgnoreCase(column.getName(), "hiscode")) {
-                hisCode = Integer.parseInt(column.getValue());
-            }
-
-        }
-        if (hisCode == -1) {
-            return;
-        }
-        final String cmdStr = StringUtils.join(cols, ",");
-        final String prex = StringUtils.join(vals, ",");
-        final String sqlSta = String.format("insert into   `%s`(%s) values(%s);", tabName, cmdStr, prex);
-        LOGGER.info("Insert SQL is :{}", sqlSta);
-
-        DbInfo db = DbWrapper.instance().getHisMapDB(hisCode);
-
-        try {
-            Connection connection = DbWrapper.instance().createConnection(db);
-            PreparedStatement stmt = (com.mysql.jdbc.PreparedStatement) connection.prepareStatement(sqlSta);
-            stmt.clearParameters();
-            int ic = 1;
-            for (CanalEntry.Column column : columns) {
-                StatementCreatorUtils.setParameterValue(stmt,ic, column.getSqlType(), column.getValue());
-                ic += 1;
-            }
-            stmt.execute();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
-    }
 
     private void printColumn(@NotNull List<CanalEntry.Column> columns) {
         for (CanalEntry.Column column : columns) {
             System.out.println(column.getName() + " : " + column.getValue() + "    update=" + column.getUpdated());
+            if (column.getSqlType() == Types.BLOB || column.getSqlType() == Types.CLOB) {
+                LOGGER.info("colType:{} colMysqlTYpe:{}", column.getSqlType(), column.getMysqlType());
+            } else {
+                LOGGER.info("{} : {}  update={} ", column.getName(), column.getValue(), column.getUpdated());
+            }
         }
     }
 

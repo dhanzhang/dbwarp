@@ -11,6 +11,9 @@ public class DbInfo {
     private String userName;
     private String userPwd;
 
+    private volatile boolean created;
+    private com.mysql.jdbc.MySQLConnection connection;
+
     public String getInstanceName() {
         return instanceName;
     }
@@ -78,11 +81,12 @@ public class DbInfo {
         this.dbPort = dbPort;
         this.userName = userName;
         this.userPwd = userPwd;
+        this.created = false;
     }
 
     @Override
     public String toString() {
-        return String.format("dbInstance:%s, dbHost:%s, dbPort:%d , dbName:%s, dbUser:%s", getInstanceName(),  getDbHost(), getDbPort(), getDbName(), getUserName());
+        return String.format("dbInstance:%s, dbHost:%s, dbPort:%d , dbName:%s, dbUser:%s", getInstanceName(), getDbHost(), getDbPort(), getDbName(), getUserName());
     }
 
     public DbInfo() {
@@ -91,8 +95,14 @@ public class DbInfo {
 
     public com.mysql.jdbc.MySQLConnection CreateConnection() throws Exception {
 
-        Class.forName("com.mysql.jdbc.Driver");
-        final String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=false&characterEncoding=UTF-8", getDbHost(), getDbPort(), getDbName());
-        return (com.mysql.jdbc.MySQLConnection) DriverManager.getConnection(url, getUserName(), getUserPwd());
+        if (!created) {
+            final String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=false&characterEncoding=UTF-8", getDbHost(), getDbPort(), getDbName());
+            Class.forName("com.mysql.jdbc.Driver");
+            connection = (com.mysql.jdbc.MySQLConnection) DriverManager.getConnection(url, getUserName(), getUserPwd());
+            created = true;
+        }
+        return connection;
+
+
     }
 }
